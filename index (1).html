@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Farm Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --gold: #c9933a; --gold-light: #e8b95a; --gold-dim: #7a5a20;
+  --silver: #a8b5c0; --copper: #b5714a;
+  --bg: #0d0f0e; --bg2: #141714; --bg3: #1a1e1a; --bg4: #1f241f;
+  --border: rgba(201,147,58,0.18); --border-strong: rgba(201,147,58,0.38);
+  --text: #e8e0d0; --text-dim: #8a8478; --text-muted: #4a4840;
+  --crystal: #7eb8d4; --armor: #8a9e7a; --potion: #c4776a; --red: #c46a6a;
+  --radius: 6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Crimson Pro',Georgia,serif;background:var(--bg);color:var(--text);min-height:100vh;min-height:100dvh}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(ellipse at 20% 50%,rgba(201,147,58,0.03) 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(126,184,212,0.02) 0%,transparent 50%);pointer-events:none;z-index:0}
+.app-header{border-bottom:0.5px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:12px;position:relative;z-index:1}
+.app-header h1{font-family:'Cinzel',serif;font-size:18px;font-weight:600;color:var(--gold);letter-spacing:.12em}
+.app-header .subtitle{font-size:13px;color:var(--text-dim);font-style:italic}
+.sword-icon{width:22px;height:22px;opacity:.7}
+.layout{display:grid;grid-template-columns:210px 1fr 290px;height:calc(100vh - 53px);height:calc(100dvh - 53px);position:relative;z-index:1}
+.col{border-right:0.5px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.col:last-child{border-right:none}
+.col-header{padding:14px 16px 10px;border-bottom:0.5px solid var(--border);font-family:'Cinzel',serif;font-size:11px;letter-spacing:.1em;color:var(--gold-dim);flex-shrink:0}
+.col-body{padding:14px;overflow-y:auto;flex:1;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+
+/* Calendar */
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.cal-nav-btn{background:none;border:0.5px solid var(--border);border-radius:var(--radius);color:var(--text-dim);width:26px;height:26px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:border-color .15s,color .15s}
+.cal-nav-btn:hover{border-color:var(--border-strong);color:var(--gold)}
+.cal-month{font-family:'Cinzel',serif;font-size:12px;color:var(--text);letter-spacing:.06em}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;text-align:center}
+.cal-day-name{font-size:9px;color:var(--text-muted);padding:3px 0 5px;font-family:'Cinzel',serif;letter-spacing:.06em}
+.cal-day{font-size:12px;padding:5px 2px;cursor:pointer;border-radius:4px;color:var(--text-dim);position:relative;transition:background .12s,color .12s;line-height:1}
+.cal-day:hover{background:var(--bg3);color:var(--text)}
+.cal-day.today{color:var(--gold)}
+.cal-day.selected{background:var(--bg4);color:var(--gold-light);border:0.5px solid var(--border-strong)}
+.cal-day.has-data::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:3px;height:3px;border-radius:50%;background:var(--gold-dim)}
+.divider{border:none;border-top:0.5px solid var(--border);margin:14px 0}
+.mini-stat{margin-bottom:8px}
+.mini-stat-label{font-size:10px;color:var(--text-muted);font-family:'Cinzel',serif;letter-spacing:.06em;margin-bottom:2px}
+.mini-stat-value{font-size:18px;font-weight:300;color:var(--text)}
+
+/* Center */
+.selected-date{font-family:'Cinzel',serif;font-size:13px;color:var(--gold);letter-spacing:.08em;margin-bottom:14px}
+.money-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
+.money-card{background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius);padding:10px;text-align:center}
+.money-card .icon{font-size:16px;margin-bottom:4px}
+.money-card .amount{font-size:20px;font-weight:300;line-height:1}
+.money-card .clabel{font-size:9px;color:var(--text-dim);font-family:'Cinzel',serif;letter-spacing:.07em;margin-top:3px}
+.money-card.gold .amount{color:var(--gold)}
+.money-card.silver .amount{color:var(--silver)}
+.money-card.copper .amount{color:var(--copper)}
+.section-label{font-family:'Cinzel',serif;font-size:9px;letter-spacing:.1em;color:var(--text-muted);margin-bottom:8px;padding-bottom:4px;border-bottom:0.5px solid var(--border)}
+.items-list{background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:14px;min-height:40px}
+.item-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:0.5px solid rgba(201,147,58,0.07)}
+.item-row:last-child{border-bottom:none}
+.item-name{font-size:13px;color:var(--text-dim)}
+.item-qty{font-size:14px;color:var(--gold);font-weight:300}
+.items-empty{font-size:12px;color:var(--text-muted);font-style:italic}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.stat-box{background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius);padding:10px 12px}
+.stat-box.highlight{border-color:var(--border-strong)}
+.stat-box-label{font-size:9px;font-family:'Cinzel',serif;letter-spacing:.07em;color:var(--text-muted);margin-bottom:4px}
+.stat-box-value{font-size:20px;font-weight:300;color:var(--text)}
+.stat-box.highlight .stat-box-value{color:var(--gold-light)}
+
+/* Right panel */
+.add-btn{width:100%;padding:9px;background:none;border:0.5px solid var(--border-strong);border-radius:var(--radius);color:var(--gold);font-family:'Cinzel',serif;font-size:11px;letter-spacing:.08em;cursor:pointer;margin-bottom:12px;transition:background .15s}
+.add-btn:hover{background:rgba(201,147,58,0.07)}
+.fight-item{background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:7px;transition:border-color .12s}
+.fight-item:hover{border-color:var(--border-strong)}
+.fight-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px}
+.fight-title{font-family:'Cinzel',serif;font-size:11px;color:var(--gold);letter-spacing:.05em;max-width:160px;line-height:1.3}
+.fight-meta{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.fight-time{font-size:11px;color:var(--text-dim);font-style:italic;white-space:nowrap}
+.del-btn{background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:12px;padding:1px 4px;border-radius:3px;line-height:1;transition:color .12s,background .12s}
+.del-btn:hover{color:var(--red);background:rgba(196,106,106,0.1)}
+.fight-section-label{font-size:9px;font-family:'Cinzel',serif;letter-spacing:.07em;color:var(--text-muted);margin:6px 0 3px}
+.fight-drops{display:flex;flex-wrap:wrap;gap:4px}
+.badge{font-size:10px;padding:2px 7px;border-radius:3px;border:0.5px solid}
+.badge.gold{background:rgba(201,147,58,0.10);border-color:rgba(201,147,58,0.25);color:var(--gold)}
+.badge.silver{background:rgba(168,181,192,0.10);border-color:rgba(168,181,192,0.25);color:var(--silver)}
+.badge.copper{background:rgba(181,113,74,0.10);border-color:rgba(181,113,74,0.25);color:var(--copper)}
+.badge.item{background:rgba(126,184,212,0.08);border-color:rgba(126,184,212,0.20);color:var(--crystal)}
+.badge.unknown{background:rgba(74,72,64,0.3);border-color:rgba(74,72,64,0.5);color:var(--text-muted)}
+.empty-state{text-align:center;color:var(--text-muted);font-size:13px;font-style:italic;padding:32px 0}
+
+/* Modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:200;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(--bg2);border:0.5px solid var(--border-strong);border-radius:10px;padding:24px;width:540px;max-width:96vw;max-height:88vh;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.modal-title{font-family:'Cinzel',serif;font-size:15px;color:var(--gold);letter-spacing:.1em;margin-bottom:4px;padding-bottom:10px;border-bottom:0.5px solid var(--border)}
+.modal-subtitle{font-size:13px;color:var(--text-dim);font-style:italic;margin-bottom:14px;margin-top:8px}
+.paste-area{width:100%;min-height:160px;resize:vertical;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'Crimson Pro',serif;font-size:13px;line-height:1.5;padding:10px 12px;outline:none;transition:border-color .15s}
+.paste-area:focus{border-color:var(--border-strong)}
+.paste-area::placeholder{color:var(--text-muted);font-style:italic}
+.btn-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.btn-parse{flex:1;min-width:120px;padding:9px;background:rgba(201,147,58,0.08);border:0.5px solid var(--border-strong);border-radius:var(--radius);color:var(--gold-light);font-family:'Cinzel',serif;font-size:11px;letter-spacing:.08em;cursor:pointer;transition:background .15s}
+.btn-parse:hover{background:rgba(201,147,58,0.16)}
+.btn-parse:disabled{opacity:.4;cursor:not-allowed}
+.btn-save-all{flex:1;min-width:120px;padding:9px;background:rgba(138,158,122,0.12);border:0.5px solid rgba(138,158,122,0.35);border-radius:var(--radius);color:var(--armor);font-family:'Cinzel',serif;font-size:11px;letter-spacing:.08em;cursor:pointer;transition:background .15s}
+.btn-save-all:hover{background:rgba(138,158,122,0.2)}
+.btn-save-all:disabled{opacity:.4;cursor:not-allowed}
+.btn-cancel{padding:8px 14px;background:none;border:0.5px solid var(--border);border-radius:var(--radius);color:var(--text-dim);font-family:'Cinzel',serif;font-size:11px;letter-spacing:.07em;cursor:pointer;transition:border-color .15s}
+.btn-cancel:hover{border-color:var(--border-strong)}
+.loading-row{display:flex;align-items:center;gap:8px;color:var(--text-dim);font-size:13px;font-style:italic;margin-top:12px}
+.spinner{width:14px;height:14px;border:1.5px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.parse-results{margin-top:14px}
+.parse-results-title{font-family:'Cinzel',serif;font-size:10px;letter-spacing:.08em;color:var(--text-muted);margin-bottom:8px}
+.result-fight{background:var(--bg4);border:0.5px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px}
+.result-fight-name{font-family:'Cinzel',serif;font-size:12px;color:var(--gold);margin-bottom:6px}
+.result-row{display:flex;justify-content:space-between;font-size:12px;color:var(--text-dim);padding:2px 0}
+.result-row span:last-child{color:var(--text)}
+.result-unclassified{font-size:11px;color:var(--text-muted);font-style:italic;margin-top:4px;padding-top:4px;border-top:0.5px solid var(--border)}
+.result-error{font-size:13px;color:var(--red);font-style:italic;margin-top:10px}
+
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+@media(max-width:780px){
+  .layout{grid-template-columns:1fr;height:auto;overflow-y:auto}
+  .col{border-right:none;border-bottom:0.5px solid var(--border);overflow:visible}
+  .col-body{overflow-y:visible}
+}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <svg class="sword-icon" viewBox="0 0 22 22" fill="none">
+    <path d="M3 19L13 9M13 9L16 3L19 6L13 9ZM13 9L15 11" stroke="#c9933a" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M5 17L3 19L5 21" stroke="#c9933a" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <h1>FARM TRACKER</h1>
+  <span class="subtitle" style="margin-left:8px">Registro de peleas y estadísticas</span>
+</header>
+
+<div class="layout">
+
+  <!-- LEFT -->
+  <div class="col">
+    <div class="col-header">Calendario</div>
+    <div class="col-body">
+      <div class="cal-nav">
+        <button class="cal-nav-btn" id="prev-month">&#8249;</button>
+        <span class="cal-month" id="cal-month-label"></span>
+        <button class="cal-nav-btn" id="next-month">&#8250;</button>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <hr class="divider">
+      <div class="section-label">Global</div>
+      <div class="mini-stat"><div class="mini-stat-label">Total peleas</div><div class="mini-stat-value" id="g-fights">0</div></div>
+      <div class="mini-stat"><div class="mini-stat-label">Total mobs</div><div class="mini-stat-value" id="g-mobs">0</div></div>
+      <div class="mini-stat"><div class="mini-stat-label">Tiempo total</div><div class="mini-stat-value" id="g-time">0m</div></div>
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="col">
+    <div class="col-header">Resumen del día</div>
+    <div class="col-body">
+      <div class="selected-date" id="center-date"></div>
+      <div class="section-label">Dinero ganado</div>
+      <div class="money-row">
+        <div class="money-card gold"><div class="icon">●</div><div class="amount" id="d-gold">0</div><div class="clabel">Oro</div></div>
+        <div class="money-card silver"><div class="icon">●</div><div class="amount" id="d-silver">0</div><div class="clabel">Plata</div></div>
+        <div class="money-card copper"><div class="icon">●</div><div class="amount" id="d-copper">0</div><div class="clabel">Cobre</div></div>
+      </div>
+      <div class="section-label">Items obtenidos</div>
+      <div class="items-list" id="d-items-list"><span class="items-empty">Sin items registrados</span></div>
+      <div class="section-label">Estadísticas de combate</div>
+      <div class="stats-grid">
+        <div class="stat-box"><div class="stat-box-label">Peleas del día</div><div class="stat-box-value" id="d-fights">0</div></div>
+        <div class="stat-box"><div class="stat-box-label">Tiempo en peleas</div><div class="stat-box-value" id="d-time">0m</div></div>
+        <div class="stat-box"><div class="stat-box-label">Mobs totales</div><div class="stat-box-value" id="d-mobs">0</div></div>
+        <div class="stat-box highlight"><div class="stat-box-label">Mobs / hora</div><div class="stat-box-value" id="d-mph">—</div></div>
+        <div class="stat-box"><div class="stat-box-label">Oro / hora</div><div class="stat-box-value" id="d-gph">—</div></div>
+        <div class="stat-box"><div class="stat-box-label">Drops prom. / pelea</div><div class="stat-box-value" id="d-dpf">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="col">
+    <div class="col-header">Registro de peleas</div>
+    <div class="col-body">
+      <button class="add-btn" id="open-modal-btn">+ PEGAR LOG DE PELEAS</button>
+      <div id="fights-list"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <div class="modal-title">Importar log de peleas</div>
+    <div class="modal-subtitle">Pega el texto del log del juego. La IA detectará automáticamente las peleas, monedas y drops.</div>
+    <textarea class="paste-area" id="log-input" placeholder='Ejemplo de log:
+The battle « Forest Hunt » has begun.
+You have received 1 37 86
+Crystals of Truth 1 pcs
+Great Elixir of Wisdom 1 pcs
+The battle « Forest Hunt » is over.
+
+The battle « Dungeon Run » has begun.
+You have received 0 54 .05:30
+Corvus Bronze Coin 3 pcs
+Thanks to the magic effects, you have managed to get richer by 8 23
+The battle « Dungeon Run » is over.'></textarea>
+    <div id="parse-status"></div>
+    <div class="btn-row">
+      <button class="btn-parse" id="btn-parse">Analizar con IA</button>
+      <button class="btn-save-all" id="btn-save-all" disabled>Guardar peleas</button>
+      <button class="btn-cancel" id="close-modal-btn">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const DAYS=['D','L','M','M','J','V','S'];
+const STORAGE_K='farmtracker_v2';
+let data={}, selectedDate=todayKey(), calYear, calMonth, parsedFights=[];
+
+function todayKey(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function saveData(){try{localStorage.setItem(STORAGE_K,JSON.stringify(data));}catch(e){}}
+function loadData(){try{const r=localStorage.getItem(STORAGE_K);if(r)data=JSON.parse(r);}catch(e){data={};}}
+function fmtTime(m){if(!m||m<=0)return '0m';if(m>=60)return `${Math.floor(m/60)}h ${Math.round(m%60)}m`;return `${Math.round(m)}m`;}
+function getDayData(){return data[selectedDate]||[];}
+
+// ── Calendar ──────────────────────────────────────────────────────────────────
+function initCal(){const d=new Date();calYear=d.getFullYear();calMonth=d.getMonth();}
+function renderCal(){
+  document.getElementById('cal-month-label').textContent=`${MONTHS[calMonth]} ${calYear}`;
+  const grid=document.getElementById('cal-grid');
+  grid.innerHTML='';
+  DAYS.forEach(d=>{const el=document.createElement('div');el.className='cal-day-name';el.textContent=d;grid.appendChild(el);});
+  const first=new Date(calYear,calMonth,1).getDay();
+  for(let i=0;i<first;i++)grid.appendChild(document.createElement('div'));
+  const days=new Date(calYear,calMonth+1,0).getDate(),today=todayKey();
+  for(let d=1;d<=days;d++){
+    const key=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const el=document.createElement('div');el.className='cal-day';el.textContent=d;
+    if(key===today)el.classList.add('today');
+    if(key===selectedDate)el.classList.add('selected');
+    if(data[key]?.length)el.classList.add('has-data');
+    el.onclick=()=>{selectedDate=key;renderCal();renderDay();renderFights();};
+    grid.appendChild(el);
+  }
+}
+
+// ── Center panel ──────────────────────────────────────────────────────────────
+function renderDay(){
+  const fights=getDayData();
+  const d=new Date(selectedDate+'T12:00:00');
+  document.getElementById('center-date').textContent=`${d.getDate()} de ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+  let totalCu=0,mobs=0,mins=0;const itemMap={};
+  fights.forEach(f=>{
+    totalCu+=(f.gold||0)*10000+(f.silver||0)*100+(f.copper||0);
+    mobs+=f.mobs||0; mins+=f.duration||0;
+    if(f.items)Object.entries(f.items).forEach(([n,q])=>{itemMap[n]=(itemMap[n]||0)+q;});
+  });
+  const gold=Math.floor(totalCu/10000),silver=Math.floor((totalCu%10000)/100),copper=totalCu%100;
+  document.getElementById('d-gold').textContent=gold;
+  document.getElementById('d-silver').textContent=silver;
+  document.getElementById('d-copper').textContent=copper;
+  document.getElementById('d-mobs').textContent=mobs;
+  document.getElementById('d-fights').textContent=fights.length;
+  document.getElementById('d-time').textContent=fmtTime(mins);
+  const h=mins/60;
+  document.getElementById('d-mph').textContent=h>0?Math.round(mobs/h):'—';
+  document.getElementById('d-gph').textContent=h>0?(totalCu/10000/h).toFixed(2):'—';
+  const totalItems=Object.values(itemMap).reduce((a,b)=>a+b,0);
+  document.getElementById('d-dpf').textContent=fights.length>0?(totalItems/fights.length).toFixed(1):'—';
+  const il=document.getElementById('d-items-list');
+  if(!Object.keys(itemMap).length){il.innerHTML='<span class="items-empty">Sin items registrados</span>';}
+  else{il.innerHTML=Object.entries(itemMap).sort((a,b)=>b[1]-a[1]).map(([n,q])=>`<div class="item-row"><span class="item-name">${n}</span><span class="item-qty">×${q}</span></div>`).join('');}
+  let gF=0,gM=0,gT=0;
+  Object.values(data).forEach(arr=>{gF+=arr.length;arr.forEach(f=>{gM+=f.mobs||0;gT+=f.duration||0;});});
+  document.getElementById('g-fights').textContent=gF;
+  document.getElementById('g-mobs').textContent=gM;
+  document.getElementById('g-time').textContent=fmtTime(gT);
+}
+
+// ── Fights list ───────────────────────────────────────────────────────────────
+function renderFights(){
+  const list=document.getElementById('fights-list'),fights=getDayData();
+  if(!fights.length){list.innerHTML='<div class="empty-state">Sin peleas registradas.<br>Importa un log para comenzar.</div>';return;}
+  list.innerHTML='';
+  fights.forEach((f,i)=>{
+    const el=document.createElement('div');el.className='fight-item';
+    const totalCu=(f.gold||0)*10000+(f.silver||0)*100+(f.copper||0);
+    const g=Math.floor(totalCu/10000),s=Math.floor((totalCu%10000)/100),c=totalCu%100;
+    let money='';
+    if(g>0)money+=`<span class="badge gold">● ${g} oro</span>`;
+    if(s>0)money+=`<span class="badge silver">● ${s} plata</span>`;
+    if(c>0)money+=`<span class="badge copper">● ${c} cobre</span>`;
+    let items='';
+    if(f.items)Object.entries(f.items).forEach(([n,q])=>{items+=`<span class="badge item">💎 ${n} ×${q}</span>`;});
+    if(f.unknown?.length)f.unknown.forEach(u=>{items+=`<span class="badge unknown" title="${u}">? sin clasificar</span>`;});
+    const noDrops=!money&&!items;
+    el.innerHTML=`
+      <div class="fight-header">
+        <span class="fight-title">#${i+1} ${f.name||'Pelea'}</span>
+        <div class="fight-meta">
+          <span class="fight-time">${fmtTime(f.duration)} · ${f.mobs||0} mobs</span>
+          <button class="del-btn" data-idx="${i}" title="Eliminar">✕</button>
+        </div>
+      </div>
+      ${money?`<div class="fight-section-label">Monedas</div><div class="fight-drops">${money}</div>`:''}
+      ${items?`<div class="fight-section-label" style="margin-top:${money?'6px':'0'}">Drops</div><div class="fight-drops">${items}</div>`:''}
+      ${noDrops?'<span style="font-size:10px;color:var(--text-muted);font-style:italic">Sin drops registrados</span>':''}`;
+    list.appendChild(el);
+  });
+  list.querySelectorAll('.del-btn').forEach(btn=>{
+    btn.onclick=()=>{
+      data[selectedDate].splice(parseInt(btn.dataset.idx),1);
+      if(!data[selectedDate].length)delete data[selectedDate];
+      saveData();renderCal();renderDay();renderFights();
+    };
+  });
+}
+
+// ── Claude API parser ─────────────────────────────────────────────────────────
+const SYSTEM_PROMPT=`Eres un parser de logs de videojuego de rol. Analiza el texto y extrae información de batallas con precisión máxima.
+
+DETECCIÓN DE PELEAS:
+- "The battle « NAME » has begun." → inicio de pelea, NAME es el nombre exacto
+- "The battle « NAME » is over." → fin de pelea
+- Todo lo que esté entre inicio y fin pertenece a esa pelea
+- Si hay drops fuera de peleas detectadas, crea una pelea con name "Sin nombre"
+- Si hay varias peleas, devuelve todas en el array
+
+MONEDAS (suma todo, devuelve total en cobre como entero):
+- "You have received A B C [timestamp]" → A=oro, B=plata, C=cobre (ignora timestamps como .05:54)
+- "You have received A B [timestamp]" → A=plata, B=cobre
+- "You have received A [timestamp]" → A=cobre
+- "Thanks to the magic effects, you have managed to get richer by A B C" → A=oro, B=plata, C=cobre extra
+- "Thanks to the magic effects, you have managed to get richer by A B" → A=plata, B=cobre extra
+- Suma todas las monedas de la pelea. Devuelve total_copper (1 oro=10000 cobre, 1 plata=100 cobre)
+
+ITEMS/DROPS:
+- Líneas con "X pcs" al final → nombre=todo antes del número+pcs, cantidad=X (entero)
+- "You have received ITEM" si ITEM no son solo números → drop con qty=1
+- "Received: ITEM" → drop con qty=1
+- Nombre EXACTO, sin traducir ni modificar nada
+- Si el mismo ítem aparece varias veces, suma las cantidades
+- Devuelve "items": { "Nombre Exacto": cantidad }
+
+DURACIÓN Y MOBS:
+- Si ves timestamps en las líneas begun/over, calcula duration_minutes como número decimal
+- Si no hay timestamps, duration_minutes=0
+- mobs=0 a menos que haya una línea explícita con número de mobs derrotados
+
+NO CLASIFICADO:
+- Líneas que no encajen en nada → "unclassified": ["linea1", "linea2"]
+
+RESPONDE SOLO CON JSON VÁLIDO SIN BACKTICKS NI TEXTO EXTRA:
+{"fights":[{"name":"string","duration_minutes":0,"mobs":0,"total_copper":0,"items":{"ItemName":1},"unclassified":[]}]}`;
+
+async function parseLog(text){
+  const res=await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:SYSTEM_PROMPT,messages:[{role:"user",content:text}]})
+  });
+  if(!res.ok)throw new Error(`API ${res.status}`);
+  const d=await res.json();
+  const raw=d.content.map(b=>b.text||'').join('');
+  return JSON.parse(raw.replace(/```json|```/g,'').trim());
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+function openModal(){
+  document.getElementById('modal').classList.add('open');
+  parsedFights=[];
+  document.getElementById('btn-save-all').disabled=true;
+  document.getElementById('parse-status').innerHTML='';
+  document.getElementById('log-input').value='';
+}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+
+document.getElementById('open-modal-btn').onclick=openModal;
+document.getElementById('close-modal-btn').onclick=closeModal;
+document.getElementById('modal').onclick=e=>{if(e.target===document.getElementById('modal'))closeModal();};
+
+document.getElementById('btn-parse').onclick=async()=>{
+  const text=document.getElementById('log-input').value.trim();
+  if(!text)return;
+  const statusEl=document.getElementById('parse-status');
+  const btnP=document.getElementById('btn-parse'),btnS=document.getElementById('btn-save-all');
+  btnP.disabled=true; btnS.disabled=true; parsedFights=[];
+  statusEl.innerHTML='<div class="loading-row"><div class="spinner"></div><span>Analizando log con IA...</span></div>';
+  try{
+    const result=await parseLog(text);
+    parsedFights=result.fights||[];
+    let html=`<div class="parse-results"><div class="parse-results-title">Resultado — ${parsedFights.length} pelea(s) detectada(s)</div>`;
+    parsedFights.forEach((f,i)=>{
+      const cu=f.total_copper||0;
+      const g=Math.floor(cu/10000),s=Math.floor((cu%10000)/100),c=cu%100;
+      const items=Object.entries(f.items||{});
+      html+=`<div class="result-fight">
+        <div class="result-fight-name">Pelea ${i+1}: ${f.name}</div>
+        <div class="result-row"><span>Duración</span><span>${fmtTime(f.duration_minutes||0)}</span></div>
+        <div class="result-row"><span>Mobs</span><span>${f.mobs||0}</span></div>
+        <div class="result-row"><span>Monedas</span><span><span style="color:var(--gold)">${g} oro</span> <span style="color:var(--silver)">${s} plata</span> <span style="color:var(--copper)">${c} cobre</span></span></div>
+        ${items.map(([n,q])=>`<div class="result-row"><span>${n}</span><span>×${q}</span></div>`).join('')}
+        ${!items.length?'<div class="result-row"><span style="color:var(--text-muted);font-style:italic">Sin items</span></div>':''}
+        ${f.unclassified?.length?`<div class="result-unclassified">Sin clasificar: ${f.unclassified.join(' · ')}</div>`:''}
+      </div>`;
+    });
+    html+='</div>';
+    statusEl.innerHTML=html;
+    if(parsedFights.length)btnS.disabled=false;
+  }catch(err){
+    statusEl.innerHTML=`<div class="result-error">Error: ${err.message}. Verifica tu conexión e inténtalo de nuevo.</div>`;
+  }
+  btnP.disabled=false;
+};
+
+document.getElementById('btn-save-all').onclick=()=>{
+  if(!parsedFights.length)return;
+  if(!data[selectedDate])data[selectedDate]=[];
+  parsedFights.forEach(f=>{
+    const cu=f.total_copper||0;
+    data[selectedDate].push({
+      name:f.name||'Sin nombre',mobs:f.mobs||0,duration:f.duration_minutes||0,
+      gold:Math.floor(cu/10000),silver:Math.floor((cu%10000)/100),copper:cu%100,
+      items:f.items||{},unknown:f.unclassified||[]
+    });
+  });
+  saveData();closeModal();renderCal();renderDay();renderFights();
+};
+
+document.getElementById('prev-month').onclick=()=>{calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderCal();};
+document.getElementById('next-month').onclick=()=>{calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCal();};
+
+loadData();initCal();renderCal();renderDay();renderFights();
+</script>
+</body>
+</html>
